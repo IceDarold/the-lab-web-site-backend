@@ -6,6 +6,8 @@ from aiogram.types import Message, Update
 from aiogram.filters import Command
 from config import BOT_TOKEN, USER_IDS, WEBHOOK_URL, MODE
 import asyncio
+import threading
+import uvicorn
 
 from contextlib import asynccontextmanager
 
@@ -13,11 +15,17 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     # Set webhook on startup only in PROD mode
     if MODE == "PROD" and WEBHOOK_URL:
-        await bot.set_webhook(WEBHOOK_URL)
+        try:
+            await bot.set_webhook(WEBHOOK_URL)
+        except Exception as e:
+            print(f"Failed to set webhook: {e}")
     yield
     # Cleanup on shutdown
     if MODE == "PROD" and WEBHOOK_URL:
-        await bot.delete_webhook()
+        try:
+            await bot.delete_webhook()
+        except Exception as e:
+            print(f"Failed to delete webhook: {e}")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -25,12 +33,13 @@ app = FastAPI(lifespan=lifespan)
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set")
 bot = Bot(token=BOT_TOKEN)
+bot_sender = Bot(token=BOT_TOKEN)  # Separate bot for sending messages
 dp = Dispatcher()
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://icedarold.github.io"],  # Vite dev server and production frontend
+    allow_origins=["http://localhost:5173", "http://localhost:5137", "https://icedarold.github.io"],  # Vite dev server and production frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,7 +59,7 @@ async def send_notification_to_users(application: Application):
     message = f"Новая заявка:\nИмя: {application.name}\nTelegram: {application.telegram}\nМотивация: {application.motivation}"
     for user_id in USER_IDS:
         try:
-            await bot.send_message(chat_id=user_id, text=message)
+            await bot_sender.send_message(chat_id=user_id, text=message)
         except Exception as e:
             print(f"Failed to send message to {user_id}: {e}")
 
@@ -63,15 +72,22 @@ async def telegram_webhook(update: Update):
 async def submit_application(application: Application):
     print(f"Received application: {application.model_dump()}")
     # Send notification to users
-    asyncio.create_task(send_notification_to_users(application))
+    await send_notification_to_users(application)
     return {"message": "Application received"}
 
 # For local testing
 if __name__ == "__main__":
-    import uvicorn
     if MODE == "DEV":
-        # Run bot with polling
-        asyncio.run(dp.start_polling(bot))
+        # Run both bot and FastAPI in DEV mode
+        def run_bot():
+            asyncio.run(dp.start_polling(bot))
+
+        def run_api():
+            uvicorn.run(app, host="0.0.0.0", port=8004)
+
+        bot_thread = threading.Thread(target=run_bot, daemon=True)
+        bot_thread.start()
+        run_api()
     else:
         # Run FastAPI server for PROD
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8001)
