@@ -62,11 +62,20 @@ class Application(BaseModel):
     telegram: str
     motivation: str
 
-async def send_notification_to_users(application: Application):
+def send_notification_to_users_sync(application):
+    print(f"send_notification_to_users_sync called")
     message = f"Новая заявка:\nИмя: {application.name}\nTelegram: {application.telegram}\nМотивация: {application.motivation}"
+    print(f"USER_IDS: {USER_IDS}, len: {len(USER_IDS)}")
     for user_id in USER_IDS:
+        print(f"Sending to {user_id}")
         try:
-            await bot_sender.send_message(chat_id=user_id, text=message)
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+            data = {"chat_id": user_id, "text": message}
+            response = requests.post(url, json=data)
+            if response.status_code == 200:
+                print(f"Message sent successfully to {user_id}")
+            else:
+                print(f"Failed to send message to {user_id}: {response.text}")
         except Exception as e:
             print(f"Failed to send message to {user_id}: {e}")
 
@@ -78,8 +87,8 @@ async def telegram_webhook(update: Update):
 @app.post("/api/applications")
 async def submit_application(application: Application):
     print(f"Received application: {application.model_dump()}")
-    # Send notification to users
-    await send_notification_to_users(application)
+    # Send notification to users synchronously
+    send_notification_to_users_sync(application)
     return {"message": "Application received"}
 
 # For local testing
