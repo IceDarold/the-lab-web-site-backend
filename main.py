@@ -8,6 +8,7 @@ from config import BOT_TOKEN, USER_IDS, WEBHOOK_URL, MODE
 import asyncio
 import threading
 import uvicorn
+import requests
 
 from contextlib import asynccontextmanager
 
@@ -48,7 +49,13 @@ app.add_middleware(
 # Telegram bot handlers
 @dp.message(Command("start"))
 async def start_command(message: Message):
-    await message.reply("Привет! Я бот для уведомлений о новых заявках. Когда приходит новая заявка, я отправляю её данные администраторам.")
+    # Use sync requests to avoid event loop issues in serverless
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    data = {
+        "chat_id": message.chat.id,
+        "text": "Привет! Я бот для уведомлений о новых заявках. Когда приходит новая заявка, я отправляю её данные администраторам."
+    }
+    requests.post(url, json=data)
 
 class Application(BaseModel):
     name: str
