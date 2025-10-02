@@ -67,13 +67,13 @@ def send_notification_to_users_sync(application):
     telegram = application.telegram
     if not telegram.startswith('@'):
         telegram = f"@{telegram}"
-    message = f"**Новая заявка**\n\\**Имя:** {application.name}\n**Telegram:** {telegram}\n**Мотивация:** {application.motivation}"
+    message = f"**Новая заявка**\n**Имя:** {application.name}\n**Telegram:** {telegram}\n**Мотивация:** {application.motivation}"
     print(f"USER_IDS: {USER_IDS}, len: {len(USER_IDS)}")
     for user_id in USER_IDS:
         print(f"Sending to {user_id}")
         try:
             url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-            data = {"chat_id": user_id, "text": message}
+            data = {"chat_id": user_id, "text": message, "parse_mode": "Markdown"}
             response = requests.post(url, json=data)
             if response.status_code == 200:
                 print(f"Message sent successfully to {user_id}")
