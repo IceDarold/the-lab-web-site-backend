@@ -64,7 +64,10 @@ class Application(BaseModel):
 
 def send_notification_to_users_sync(application):
     print(f"send_notification_to_users_sync called")
-    message = f"Новая заявка:\nИмя: {application.name}\nTelegram: {application.telegram}\nМотивация: {application.motivation}"
+    telegram = application.telegram
+    if not telegram.startswith('@'):
+        telegram = f"@{telegram}"
+    message = f"📋 Новая заявка!\n\n👤 Имя: {application.name}\n📱 Telegram: {telegram}\n💬 Мотивация: {application.motivation}"
     print(f"USER_IDS: {USER_IDS}, len: {len(USER_IDS)}")
     for user_id in USER_IDS:
         print(f"Sending to {user_id}")
