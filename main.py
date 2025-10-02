@@ -67,7 +67,7 @@ def send_notification_to_users_sync(application):
     telegram = application.telegram
     if not telegram.startswith('@'):
         telegram = f"@{telegram}"
-    message = f"📋 Новая заявка!\n\n👤 Имя: {application.name}\n📱 Telegram: {telegram}\n💬 Мотивация: {application.motivation}"
+    message = f"**Новая заявка**\n\\**Имя:** {application.name}\n**Telegram:** {telegram}\n**Мотивация:** {application.motivation}"
     print(f"USER_IDS: {USER_IDS}, len: {len(USER_IDS)}")
     for user_id in USER_IDS:
         print(f"Sending to {user_id}")
