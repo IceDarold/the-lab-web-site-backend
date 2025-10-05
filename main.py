@@ -141,11 +141,27 @@ def send_error_to_admins_sync(error_message):
                 print(f"Failed to send error to {user_id}: {response.text}")
         except Exception as e:
             print(f"Failed to send error to {user_id}: {e}")
+def send_registration_notification_sync(email):
+    """Send notification when a new user registers"""
+    message = f"<b>🆕 Новый пользователь зарегистрирован</b>\n\n<b>Email:</b> {email}"
+    print(f"Sending registration notification for {email}")
+    for user_id in USER_IDS:
+        try:
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+            data = {"chat_id": user_id, "text": message, "parse_mode": "HTML"}
+            response = requests.post(url, json=data)
+            if response.status_code != 200:
+                print(f"Failed to send registration notification to {user_id}: {response.text}")
+        except Exception as e:
+            print(f"Failed to send registration notification to {user_id}: {e}")
+
 
 @app.post("/auth/register")
 async def register(user: UserAuth):
    try:
        response = supabase.auth.sign_up({"email": user.email, "password": user.password})
+       # Send notification to admins about new registration
+       send_registration_notification_sync(user.email)
        return {"message": "User registered", "user": response.user.dict() if response.user else None}
    except Exception as e:
        raise HTTPException(status_code=400, detail=str(e))
