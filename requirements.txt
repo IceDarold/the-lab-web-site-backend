@@ -4,3 +4,8 @@ pydantic
 aiogram
 python-dotenv
 requests
+supabase
+pytest
+httpx
+pytest-mock
+pytest-asyncio
